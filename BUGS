@@ -1,0 +1,5 @@
+- Root counter handling doesn't currently work in No-Bios mode.
+- SetRCntHandler() and RemoveRCntHandler() can set and manage only a single root counter,
+  despite the function prototypes indicating otherwise.
+
+  

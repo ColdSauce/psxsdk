@@ -1,0 +1,70 @@
+This is a simple memory viewer for the PlayStation.
+It shows you what is contained at the desired memory addresses in a way similar to that of hex editors.
+
+Obviously it is not as straigthforward to use as similar programs for general purpose computers because the PlayStation lacks a keyboard.
+Also, *remember* that reading certain memory areas will crash the PlayStation hardware, and if that happens the only thing you can do is to reset the console.
+See "Surefire Areas" below for areas which surely won't crash your hardware.
+
+At start, the memory viewer will begin viewing memory at 0x80000000 (start of RAM),
+the resolution will be 640x240 (low-res) and the Go-Address will be 0x80000000.
+
+Terms:
+Go-Address				The address that will be used for the
+					"jump-to address" operation
+
+Control:
+UP					Decrease current address by 0x10
+DOWN					Increase current address by 0x10
+LEFT					Decrease current address by 0x100
+RIGHT					Increase current address by 0x100
+
+L1					Move to previous location in Go-Address
+R1					Move to next location in Go-Address
+L2					Move to first location in Go-Address
+CROSS					Increase nibble at current Go-Address location
+CIRCLE					Decrease nibble at current Go-Address location
+
+START					Jump to Go-Address, 
+					i.e. make the Go-Address the current address
+
+SELECT					Switch between hi-res and low-res mode
+					Hi-res mode: 640x480
+					Low-res mode: 640x240 (default)
+						
+Surefire areas:
+0x80000000-0x801fffff		PlayStation RAM (2 megabytes)
+0xbfc00000-0xbfc7ffff		PlayStation BIOS ROM (512 kilobytes)
+
+Example of setting a Go-Address and jumping:
+
+Imagine that the current go-address is 0x80000000 and we want to jump to 0xC001D00D.
+NOTE: A nibble is 4-bits long, and each digit in a hexadecimal number is a nibble.
+
+- Move to the first location in Go-Address -> L2
+- Increase the nibble at current Go-Address location until it is 0xC
+  -> as its current value is 0x8, due to the current go-address being 0x80000000,
+       press CROSS 4 times
+  >> after this operation, the current address is 0xC0000000
+- Move to the next location in Go-Address -> R1
+- The nibble at this location is already 0x0, so move to the next location -> R1
+  >> after this operation, the current address is 0xC0000000
+- The nibble at this location is already 0x0, so move to the next location -> R1
+  >> after this operation, the current address is 0xC0000000
+- Increase the nibble at current Go-Address location until it is 0x1
+  -> as its current value is 0x0, press CROSS once
+  >> after this operation, the current address will be 0xC0010000
+- Move to the next location in Go-Address -> R1
+- Increase the nibble at current Go-Address location until it is 0xD
+  -> as its current value is 0x0, press CROSS 13 times
+  >> after this operation, the current address will be 0xC001D000
+- Move to the next location in Go-Address -> R1
+- The nibble at this location is already 0x0, so move to the next location -> R1
+  >> after this operation, the current address is 0xC001D000
+- The nibble at this location is already 0x0, so move to the next location -> R1
+  >> after this operation, the current address is 0xC001D000
+- Increase the nibble at current Go-Address location until it is 0xD
+  -> as its current value is 0x0, press CROSS 13 times
+  >> after this operation, the current address will be 0xC001D00D
+- Jump to Go-Address -> START
+  >> The current address is now 0xC001D00D
+  

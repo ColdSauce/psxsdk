@@ -1,0 +1,136 @@
+Notes to make games run on real hardware
+--------------------
+Emulators are often inaccurate or can't emulate some quirk of the real
+hardware easily. This is a list of what you mustn't do and what you
+should do in order to fix the problem.
+
+Some quirks might even be present only on some revisions of the PlayStation
+hardware, but the goal is that something has to run on every revision, and so
+one has to respect all the tips, regardless of model.
+So if you want to add something to the list, also specify the model it happens
+on. Do not forget to include your name or nickname.
+
+ALL MODELS:
+
+The most noticeable quirk is that the GPU in emulators finishes to draw instantly,
+while on the real hardware the GPU has its own speed and so you must wait for
+it to finish drawing. The result of this is that on the emulator your program will
+run just fine, while on the real hardware the graphics will be entirely scrambled
+
+The way to fix this is to add 
+
+while(GsIsDrawing());
+
+after calls like GsDrawList(), LoadImage(), MoveImage(), etc.
+This ensures that your program will first check if the GPU has finished drawing
+before doing anything else.
+
+Why doesn't the SDK do this automatically? It is designed more or less to do what
+you want to do. If you want to somewhat exploit this quirk to make something nice,
+you can.
+
+You can also call GsSetAutoWait() after GsInit(), which removes the need
+for checking the result of the GsIsDrawing() function, and which makes GsDrawList()
+wait until completion.
+
+********************************************************************
+
+Controller vibration (pad_enable_vibration() and pad_set_vibration() )
+
+On controllers which are not DualShock vibration will not work. This is taken for granted.
+If you enabled vibration, and set vibration values, you unplug your controller and you plug it again,
+there will be no vibration as vibration data is not kept by the console and then sent to the controller,
+but it is sent by the console and kept by the controller. Thus when the controller is detached it loses
+its memory about vibration.
+
+A way to work around this is enabling vibration before using pad_set_vibration().
+
+Another way to work around this would be detecting when the pad is detached and when it is plugged
+again, and if it's plugged again enable vibration and set it at its past values
+(you can check pad type, 0xFF = no pad, 0x41 = normal pad, etc.)
+The second solution is the best one but the first is much simpler.
+
+For pad_set_vibration() the second argument is the level of vibration for the small motors,
+and the third argument is the level of vibration for the big motors.
+
+The small motors always seem to vibrate with the same strength. 
+To enable them, set their vibration level to 0xFF. To disable them, set their level to 0.
+This does not seem to happen on every controller, but on my no-name third party controller,
+the small motors vibrated when their vibration level AND'ed with 1 was 1, thus also when their
+vibration level was not necessarily 0xFF. But stick to 0xFF and 0 to be sure.
+
+The big motors have a regulable strength.
+The minimum vibration level to make the big motors vibrate on most controllers seems to be 0x40,
+although on mine the big motors started to vibrate starting from 0x20.
+Small values will be barely noticeable, so it is better to use a value which is higher than 0xA0
+to make the player feel the vibration.
+
+********************************************************************
+
+SsKeyOn() and SsKeyOff() must not have multiple calls in a very small amount of time or the
+hardware won't register the changes and will start playing or stop the voice it happens to start playing or stop,
+and not all the voices you wanted it to. You have to use SsKeyOnMask() or SsKeyOffMask() instead.
+
+For example, you want to start playing voices #0, #1, #2 and #3 at the same time.
+DO NOT do:
+SsKeyOn(0); SsKeyOn(1); SsKeyOn(2); SsKeyOn(3);
+
+But DO:
+SsKeyOnMask((1<<0) | (1<<1) | (1<<2)|(1<<3));
+
+Likewise, if you want to stop voices #0, #1, #2, and #3 at the same time, DO: SsKeyOffMask((1<<0)|(1<<1)|(1<<2)|(1<<3));
+
+Using SsKeyOn() to start playing a background music, and then to play a sound, for example, a second later, is perfectly fine.
+Just not at the same time or very near.
+
+********************************************************************
+
+GsDrawList() is not blocking, but GsUploadImage() and LoadImage() are blocking.
+In any case after any function which uploads data to the GPU if you want to be sure that
+the uploading process finished do: while(GsIsDrawing());
+
+********************************************************************
+
+Audio streams for the PlayStation SPU are in an ADPCM format. There is no way to play PCM audio streams directly.
+
+********************************************************************
+
+Response of the joystick when asking for pressed buttons (PSX_ReadPad()).
+It is unwise to read the pad too often and it is recommended to read it only 60 or 50 times a second (vblank/vsync period), because some joysticks will not be able to keep up, will report that no buttons are pressed and they will cause strange behavior in your program/game.
+An example of joystick that shows this problem is the Sony SCPH-1200, if probed too often some times it will report that no buttons are pressed even if some of its buttons are pressed. This does not seem to happen with some clone controllers which apparently can be probed more often.
+
+********************************************************************
+On textures, and parameters to specify their location (tpage, u and v):
+
+You musn't go outside the 256x256 area which starts at the origin of the texture page you are
+taking the texture from, otherwise drawing will not be correct.
+If using texture page 5 at 16-bit depth for instance, you can reference only data from texture pages
+5, 6, 7 and 8. At 8-bit depth only data from pages 5 and 6, and in 4-bit depth only data from page 5.
+
+********************************************************************
+Mirroring of the 2 megabytes of RAM on consumer PlayStations (not Net Yaroze or Debugging Stations):
+the 2 megabytes of RAM are normally accessible in the address range 0x8000000-0x801FFFFF, but this range
+is also mirrored (contains the same contents) in the range 0x80200000-0x803FFFFF, 0x80400000-0x805FFFFF and
+0x80600000-0x807FFFFF. Obviously the same is valid for 0x0.... (by removing the most significant bit), which is the same
+but accessing without using the cache. At least PCSX 1.5 emulates this behavior correctly.
+
+********************************************************************
+Not strictly a hardware problem, but Sony's implementation of firstfile() in the BIOS seems to have a serious bug.
+If you need to use the firstfile() call, then insert in your program the code shown below so that it runs before
+the first call to firstfile().
+
+--- CUT HERE ---
+
+// Open any existing file before calling firstfile() for the first time.
+// If before calling firstfile() for the first time, you have never called open() on an existing file before,
+// every subsequent read will fail but it will report that files are opened ok!
+// This bug happens at least with the SCPH1001 BIOS version.
+// We try to open PSX.EXE and SYSTEM.CNF, as one of them must exist in order to boot from CDROM.
+
+	f = fopen("cdrom:PSX.EXE;1", "rb");
+	fclose(f);
+	
+	f = fopen("cdrom:SYSTEM.CNF;1", "rb");
+	fclose(f);
+	
+--- CUT HERE ---

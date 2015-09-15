@@ -1,0 +1,7 @@
+NOBIOS
+-----
+Adapted functions:
+SetVBlankHandler();
+RemoveVBlankHandler();
+GsIsDrawing()/GsIsWorking()
+GsDrawList()
