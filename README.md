@@ -1,4 +1,4 @@
-#Note: This repository was cloned from the webiste http://unhaut.x10host.com/psxsdk/ I thought Github would be a much better place to host it.
+#Note: This repository was cloned from the website http://unhaut.x10host.com/psxsdk/ I thought Github would be a much better place to host it.
 
 PSXSDK 0.5.99
 ReadMe and FAQ
